@@ -87,11 +87,12 @@ class App(Frame):
 
         def set_sudoku():
             initial = {}
-            for y in range(9):
-                for x in range(9):
-                    for key, value in self.sudoku_canvas.guesses[y][x].items():
+            for row in range(9):
+                for col in range(9):
+                    for key, value in self.sudoku_canvas.guesses[row][col].items():
                         if value != 0:
-                            initial[f"{x} {y}"] = key
+                            # using a row column notation
+                            initial[f"{row} {col}"] = key
             self.sudoku_canvas.set_fixed_cells(initial)
             self.sudoku_canvas.set_mode('DEFAULT')
             print(initial)

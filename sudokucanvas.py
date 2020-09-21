@@ -71,8 +71,8 @@ class SudokuCanvas:
     def create_sudoku(self, initial):
         array = [[0 for _ in range(9)] for _ in range(9)]
         for key, value in initial.items():
-            x, y = [int(s) for s in key.split(" ")]
-            array[y][x] = int(value)
+            row, col = [int(s) for s in key.split(" ")]
+            array[row][col] = int(value)
         return SudokuGrid(array)
 
     def set_mode(self, mode):
