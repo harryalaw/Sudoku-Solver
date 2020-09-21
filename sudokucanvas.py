@@ -50,7 +50,7 @@ class SudokuCanvas:
                 self.sudoku.solved = True
                 return
             else:
-                if f"{col} {row}" in self.fixed_cells or sudoku.get_row_col(row, col) != 0:
+                if f"{row} {col}" in self.fixed_cells or sudoku.get_row_col(row, col) != 0:
                     put_number(index+1)
                 else:
                     for x in range(1, 10):
@@ -60,11 +60,11 @@ class SudokuCanvas:
                                     self.guesses[row][col][key] = 0
                                 else:
                                     self.guesses[row][col][key] = 1
-                                self.update_cell(col, row)
+                                self.update_cell(row, col)
                             put_number(index+1)
                             if not self.sudoku.solved:
                                 self.guesses[row][col][str(x)] = 0
-                            self.update_cell(col, row)
+                            self.update_cell(row, col)
         put_number(0)
     #####################################
 
@@ -116,15 +116,15 @@ class SudokuCanvas:
 
     def set_fixed_cells(self, initial):
         """creates the cells which cannot be changed and creates the initial sudoku"""
-        for y in range(9):
-            for x in range(9):
+        for row in range(9):
+            for col in range(9):
                 for num in NUMBERS:
-                    self.guesses[y][x][num] = 0
-                    self.update_cell(x, y)
+                    self.guesses[row][col][num] = 0
+                    self.update_cell(row, col)
         for key, value in initial.items():
-            x, y = [int(s) for s in key.split(" ")]
-            self.guesses[y][x][f"{value}"] = 1
-            self.update_cell(x, y, 'bold')
+            row, col = [int(s) for s in key.split(" ")]
+            self.guesses[row][col][f"{value}"] = 1
+            self.update_cell(row, col, 'bold')
         self.fixed_cells = initial
         self.sudoku = self.create_sudoku(initial)
         self.solution = self.create_sudoku(initial)
@@ -132,49 +132,49 @@ class SudokuCanvas:
         self.solution.solve()
         self.solution.display()
 
-    def draw_number(self, x, y, key, mode=None, font_weight=''):
+    def draw_number(self, row, col, key, mode=None, font_weight=''):
         if mode is None:
             mode = self.draw_mode
         if mode == 'PENCIL':
             x_offset = (int(key) - 1) % 3 * (self.CELL_WIDTH//3-1) - 1
             y_offset = (int(key) - 1) // 3 * (self.CELL_WIDTH//3-1) - 1
-            x_coord = x*self.CELL_WIDTH + x_offset
-            y_coord = y*self.CELL_WIDTH + y_offset
-            self.cell_text[y][x][key] = self.canvas.create_text(
+            x_coord = col*self.CELL_WIDTH + x_offset
+            y_coord = row*self.CELL_WIDTH + y_offset
+            self.cell_text[row][col][key] = self.canvas.create_text(
                 x_coord, y_coord, anchor='nw', text=f" {key} ")
         elif mode == 'BIG':
-            x_coord = (x+0.5)*self.CELL_WIDTH
-            y_coord = (y+0.5)*self.CELL_WIDTH
-            self.cell_text[y][x][key] = self.canvas.create_text(
+            x_coord = (col+0.5)*self.CELL_WIDTH
+            y_coord = (row+0.5)*self.CELL_WIDTH
+            self.cell_text[row][col][key] = self.canvas.create_text(
                 x_coord, y_coord, text=f" {key} ", font=('TkDefaultFont', 24, font_weight))
 
-    def update_cell(self, x, y, font_weight=''):
+    def update_cell(self, row, col, font_weight=''):
         """writes the value of all guesses into the [x,y]-th cell"""
-        for key, value in self.guesses[y][x].items():
+        for key, value in self.guesses[row][col].items():
             # removes the number if no longer a guess
-            if key in self.cell_text[y][x] and value == 0:
-                self.canvas.delete(self.cell_text[y][x][key])
-                self.cell_text[y][x].pop(key, None)
-                if self.sudoku.get_row_col(y, x) == int(key):
-                    self.sudoku.set_row_col(y, x, 0)
+            if key in self.cell_text[row][col] and value == 0:
+                self.canvas.delete(self.cell_text[row][col][key])
+                self.cell_text[row][col].pop(key, None)
+                if self.sudoku.get_row_col(row, col) == int(key):
+                    self.sudoku.set_row_col(row, col, 0)
             # if it is a new guess draw the number
-            if key not in self.cell_text[y][x] and value == 1:
+            if key not in self.cell_text[row][col] and value == 1:
                 # rescales a large number if another number is added
-                if len(self.cell_text[y][x]) == 1:
-                    old, ind = list(self.cell_text[y][x].items())[0]
+                if len(self.cell_text[row][col]) == 1:
+                    old, ind = list(self.cell_text[row][col].items())[0]
                     self.canvas.delete(ind)
-                    self.draw_number(x, y, old, 'PENCIL', font_weight)
-                    self.sudoku.set_row_col(y, x, 0)
-                self.draw_number(x, y, key, 'PENCIL', font_weight)
+                    self.draw_number(row, col, old, 'PENCIL', font_weight)
+                    self.sudoku.set_row_col(row, col, 0)
+                self.draw_number(row, col, key, 'PENCIL', font_weight)
         # makes the number large if it is the only entry into the cell
-        if len(self.cell_text[y][x]) == 1:
-            for key, value in self.cell_text[y][x].items():
+        if len(self.cell_text[row][col]) == 1:
+            for key, value in self.cell_text[row][col].items():
                 self.canvas.delete(value)
                 if self.draw_mode == 'PENCIL':
-                    self.draw_number(x, y, key, 'PENCIL', font_weight)
+                    self.draw_number(row, col, key, 'PENCIL', font_weight)
                 else:
-                    self.draw_number(x, y, key, 'BIG', font_weight)
-                    self.sudoku.set_row_col(y, x, key)
+                    self.draw_number(row, col, key, 'BIG', font_weight)
+                    self.sudoku.set_row_col(row, col, key)
 
     def move_selection(self, event):
         """ moves the currently highlighted cell in the direction pressed
@@ -222,23 +222,24 @@ class SudokuCanvas:
         if self.curr_cell is None:
             return
 
-        x, y = self.curr_cell_xy[0] // self.CELL_WIDTH, self.curr_cell_xy[1] // self.CELL_WIDTH
-        if f"{x} {y}" in self.fixed_cells:
+        col, row = self.curr_cell_xy[0] // self.CELL_WIDTH, self.curr_cell_xy[1] // self.CELL_WIDTH
+        if f"{row} {col}" in self.fixed_cells:
             return
         if char in NUMBERS:
             if self.draw_mode == 'BIG':
-                for key in self.guesses[y][x].keys():
-                    self.guesses[y][x][key] = 0
-            self.guesses[y][x][char] = (self.guesses[y][x][char] + 1) % 2
+                for key in self.guesses[row][col].keys():
+                    self.guesses[row][col][key] = 0
+            self.guesses[row][col][char] = (
+                self.guesses[row][col][char] + 1) % 2
         # clears the cell of all numbers if you press c
         if char in ['c', 'C']:
             for num in NUMBERS:
-                self.guesses[y][x][num] = 0
-                self.sudoku.set_row_col(y, x, 0)
+                self.guesses[row][col][num] = 0
+                self.sudoku.set_row_col(row, col, 0)
         # fills the cell with all possible values if you press f
         if char in ['f', 'F']:
             if self.draw_mode != 'BIG':
                 for num in NUMBERS:
-                    self.guesses[y][x][num] = 1
-                    self.sudoku.set_row_col(y, x, 0)
-        self.update_cell(x, y)
+                    self.guesses[row][col][num] = 1
+                    self.sudoku.set_row_col(row, col, 0)
+        self.update_cell(row, col)
