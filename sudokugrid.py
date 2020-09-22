@@ -12,15 +12,17 @@ class SudokuGrid:
         self.initial_values = self.set_initial_values()
         self.solved = False
         self.possibilities = self.init_possibles()
+        self.changes = True
 
     def set_row_col(self, row, col, x):
+        """sets the value of the cell at row,col to x"""
         try:
             self.array[row][col] = int(x)
-            self.possibilities[row][col] = {}
         except:
             print(f"Didn't input an integer {x} {type(x)}")
 
     def get_row_col(self, row, col):
+        """gets the value of the cell at row,col"""
         return self.array[row][col]
 
     def set_initial_values(self):
@@ -34,15 +36,11 @@ class SudokuGrid:
 
     def is_valid(self):
         """Checks if the sudoku has any errors"""
-        errors = []
         for row in range(9):
             for col in range(9):
                 if not self.is_possible(row, col):
-                    errors.append([row, col])
-        if errors != []:
-            return errors
-        else:
-            return True
+                    return False
+        return True
 
     def is_possible(self, row, col, value=None):
         """
@@ -81,48 +79,13 @@ class SudokuGrid:
             print()
         print("\n")
 
-    def solve(self):
-        """Begins solving by a backtracking method"""
-        self.put_number(0)
-
-    def put_number(self, index):
-        row, col = index // 9, index % 9
-
-        if self.solved:
-            return
-        if row == 9:
-            self.solved = True
-            return
-        else:
-            if self.get_row_col(row, col) == 0:
-                for x in range(1, 10):
-                    if self.is_possible(row, col, x):
-                        self.set_row_col(row, col, x)
-                        self.put_number(index+1)
-                        # this check ensures that it doesn't revert the solution to the original state in the case it finds a solution
-                        if not self.solved:
-                            self.set_row_col(row, col, 0)
-            else:
-                self.put_number(index+1)
-
-
-# for the next part want to try to optimise the backtrack algorithm
-# create a possibility array for each point - consisting of the numbers that a cell could be
-# then want to iterate through the rows,columns and box
-# if a value only appears in one cell in a row or a column or a box then set the value in the sudoku to that
-    # when any value is placed re-eliminate possibilities
-# then adapt the backtracking algoirthm so that it does this check at every stage?
-
-
     def init_possibles(self):
-        # for each cell create a dictionary consisting of possible values
-        # chose a dictionary for ease of deleting and accessing values
+        """creates a dictionary consisting of possible values for each cell"""
         possibilities = [[{} for _ in range(9)] for _ in range(9)]
         for row in range(9):
             for col in range(9):
                 if f"{row} {col}" in self.initial_values:
-                    x = self.get_row_col(row, col)
-                    possibilities[row][col][f"{x}"] = x
+                    continue
                 else:
                     for x in range(1, 10):
                         if self.is_possible(row, col, x):
@@ -130,22 +93,36 @@ class SudokuGrid:
         return possibilities
 
     def update_possibles(self):
+        """Updates possible candidates in each cell
+        Note only removes candidates as that is what is required"""
         for row in range(9):
             for col in range(9):
-                to_remove = []
-                for key in self.possibilities[row][col].keys():
-                    if not self.is_possible(row, col, int(key)):
-                        to_remove += key
-                for key in to_remove:
-                    self.possibilities[row][col].pop(key, None)
+                if self.get_row_col(row, col) != 0:
+                    self.possibilities[row][col] = {}
+                else:
+                    to_remove = []
+                    for key in self.possibilities[row][col].keys():
+                        if not self.is_possible(row, col, int(key)):
+                            to_remove += key
+                    if to_remove:
+                        for key in to_remove:
+                            self.possibilities[row][col].pop(key)
+
+    def find_naked_singles(self):
+        """finds cells which have only one candidate number and fills them"""
+        for row in range(9):
+            for col in range(9):
+                if len(self.possibilities[row][col]) == 1:
+                    x = list(self.possibilities[row][col].values())[0]
+                    self.set_row_col(row, col, x)
+                    self.changes += [[row, col, x]]
 
     def find_single_row(self):
-        # for each row will count how many times each value appears
-        # if it only appears once in a row then we set the value
+        """for each row finds if any numbers can only be placed in one cell and places them there"""
         for row in range(9):
             for x in range(1, 10):
                 value = str(x)
-                value_count = 0  # counts how much the value appears in a row
+                value_count = 0
                 value_row_cols = []
                 for col in range(9):
                     if value in self.possibilities[row][col]:
@@ -154,11 +131,10 @@ class SudokuGrid:
                 if value_count == 1:
                     row, col = value_row_cols[0]
                     self.set_row_col(row, col, x)
-                    self.changes += 1
-        self.update_possibles
+                    self.changes += [[row, col, x]]
 
     def find_single_col(self):
-        # does same as above except checks for column singles
+        """for each column finds if any numbers can only be placed in one cell and places them there"""
         for col in range(9):
             for x in range(1, 10):
                 value = str(x)
@@ -171,11 +147,10 @@ class SudokuGrid:
                 if value_count == 1:
                     row, col = value_row_cols[0]
                     self.set_row_col(row, col, x)
-                    self.changes += 1
-        self.update_possibles()
+                    self.changes += [[row, col, x]]
 
     def find_single_box(self):
-        # checks for singles in each box
+        """for each box checks if any numbers can only be placed in one cell and then places them there"""
         for index in range(9):
             i, j = index // 3 * 3, index % 3 * 3
             box = [[i, j]] + self.get_box(i, j)
@@ -190,32 +165,37 @@ class SudokuGrid:
                 if value_count == 1:
                     row, col = value_row_cols[0]
                     self.set_row_col(row, col, x)
-                    self.changes += 1
-        self.update_possibles()
+                    self.changes += [[row, col, x]]
 
     def find_hidden_singles(self):
-        self.changes = 0
+        """Performs all above searches"""
+        self.changes = []
+        self.find_naked_singles()
         self.find_single_row()
         self.find_single_col()
         self.find_single_box()
+        self.update_possibles()
 
-    def solve_better(self):
-        """Begins the solving algorithm"""
-        self.changes = True
-        self.put_number_better(0)
+    def display_possiblities(self):
+        """Displays possibilities for each cell for debugging"""
+        for row in range(9):
+            for col in range(9):
+                print(f"{row} {col} {self.possibilities[row][col]}")
 
-    def put_number_better(self, index):
-        """
-        Solves the sudoku by first trying to find any numbers which must be placed into the grid
-        (by seeing that there is only one space in a row to place a number).
-        Once all of these are placed it begins a backtracking algorithm, looping through the cells and 
-        placing a value in a given cell. Once it places a number it looks for singles again.
-        """
-
-        # Need to be able to undo the changes caused by searching for hidden singles
-
-        while(self.changes):
+    def solve(self):
+        """Begins the backtracking solving algorithm, but first places as many numbers as it can using simple logic above"""
+        self.update_possibles()
+        while self.changes:
             self.find_hidden_singles()
+        self.put_number(0)
+
+    def put_number(self, index):
+        """
+        Iterates through all cells of the grid, tries to place each number
+        in turn into the cell and then looks for next non-empty cell.
+        If a given solution is no longer valid, reverts the changes back up the recursive chain until it can continue again.
+        """
+
         if self.solved:
             return
         row, col = index // 9, index % 9
@@ -223,64 +203,115 @@ class SudokuGrid:
             self.solved = True
             return
         if self.get_row_col(row, col) == 0:
-            for x in self.possibilities[row][col].items():
-                self.set_row_col(row, col, x)
-                self.put_number_better(index+1)
-                if not self.solved:
-                    self.set_row_col(row, col, 0)
+            for x in range(1, 10):
+                if self.is_possible(row, col, x):
+                    self.set_row_col(row, col, x)
+                    self.put_number(index+1)
+                    if not self.solved:
+                        self.set_row_col(row, col, 0)
         else:
-            self.put_number_better(index+1)
+            self.put_number(index+1)
 
 
-array1 = [
-    [0, 5, 0, 0, 2, 0, 3, 0, 1],
-    [0, 0, 0, 6, 5, 1, 0, 0, 8],
-    [1, 7, 2, 0, 0, 0, 6, 4, 5],
-    [0, 9, 0, 0, 0, 0, 5, 3, 0],
-    [2, 0, 0, 5, 0, 4, 0, 0, 6],
-    [8, 0, 0, 0, 3, 0, 0, 2, 0],
-    [0, 0, 0, 0, 0, 0, 0, 0, 0],
-    [7, 0, 0, 9, 6, 5, 0, 1, 0],
-    [0, 6, 0, 0, 0, 2, 9, 0, 0],
-]
+def main():
+    #######################################
+    # storing some test cases to be trialed
+    array1 = [
+        [0, 2, 0, 6, 0, 8, 0, 0, 0],
+        [5, 8, 0, 0, 0, 9, 7, 0, 0],
+        [0, 0, 0, 0, 4, 0, 0, 0, 0],
+        [3, 7, 0, 0, 0, 0, 5, 0, 0],
+        [6, 0, 0, 0, 0, 0, 0, 0, 4],
+        [0, 0, 8, 0, 0, 0, 0, 1, 3],
+        [0, 0, 0, 0, 2, 0, 0, 0, 0],
+        [0, 0, 9, 8, 0, 0, 0, 3, 6],
+        [0, 0, 0, 3, 0, 6, 0, 9, 0]
+    ]
+    arraycopy = [
+        [0, 2, 0, 6, 0, 8, 0, 0, 0],
+        [5, 8, 0, 0, 0, 9, 7, 0, 0],
+        [0, 0, 0, 0, 4, 0, 0, 0, 0],
+        [3, 7, 0, 0, 0, 0, 5, 0, 0],
+        [6, 0, 0, 0, 0, 0, 0, 0, 4],
+        [0, 0, 8, 0, 0, 0, 0, 1, 3],
+        [0, 0, 0, 0, 2, 0, 0, 0, 0],
+        [0, 0, 9, 8, 0, 0, 0, 3, 6],
+        [0, 0, 0, 3, 0, 6, 0, 9, 0]
+    ]
 
-array2 = [
-    [9, 8, 3, 0, 0, 0, 0, 4, 0],
-    [0, 6, 0, 9, 0, 0, 0, 0, 8],
-    [1, 0, 0, 0, 0, 8, 0, 6, 0],
-    [0, 0, 0, 0, 0, 0, 9, 1, 0],
-    [0, 0, 0, 5, 0, 6, 0, 0, 0],
-    [3, 9, 6, 0, 0, 0, 8, 0, 2],
-    [0, 0, 0, 4, 0, 5, 0, 0, 0],
-    [5, 0, 0, 0, 2, 0, 0, 0, 0],
-    [0, 0, 8, 3, 0, 0, 0, 7, 4],
-]
+    array2 = [
+        [9, 8, 3, 0, 0, 0, 0, 4, 0],
+        [0, 6, 0, 9, 0, 0, 0, 0, 8],
+        [1, 0, 0, 0, 0, 8, 0, 6, 0],
+        [0, 0, 0, 0, 0, 0, 9, 1, 0],
+        [0, 0, 0, 5, 0, 6, 0, 0, 0],
+        [3, 9, 6, 0, 0, 0, 8, 0, 2],
+        [0, 0, 0, 4, 0, 5, 0, 0, 0],
+        [5, 0, 0, 0, 2, 0, 0, 0, 0],
+        [0, 0, 8, 3, 0, 0, 0, 7, 4],
+    ]
+
+    array3 = [
+        [3, 0, 9, 0, 0, 0, 4, 0, 0],
+        [2, 0, 0, 7, 0, 9, 0, 0, 0],
+        [0, 8, 7, 0, 0, 0, 0, 0, 0],
+        [7, 5, 0, 0, 6, 0, 2, 3, 0],
+        [6, 0, 0, 9, 0, 4, 0, 0, 8],
+        [0, 2, 8, 0, 5, 0, 0, 4, 1],
+        [0, 0, 0, 0, 0, 0, 5, 9, 0],
+        [0, 0, 0, 1, 0, 6, 0, 0, 7],
+        [0, 0, 6, 0, 0, 0, 1, 0, 4],
+    ]
+    Array3 = [
+        [3, 0, 9, 0, 0, 0, 4, 0, 0],
+        [2, 0, 0, 7, 0, 9, 0, 0, 0],
+        [0, 8, 7, 0, 0, 0, 0, 0, 0],
+        [7, 5, 0, 0, 6, 0, 2, 3, 0],
+        [6, 0, 0, 9, 0, 4, 0, 0, 8],
+        [0, 2, 8, 0, 5, 0, 0, 4, 1],
+        [0, 0, 0, 0, 0, 0, 5, 9, 0],
+        [0, 0, 0, 1, 0, 6, 0, 0, 7],
+        [0, 0, 6, 0, 0, 0, 1, 0, 4],
+    ]
+
+    ############################
+
+    sudoku1 = SudokuGrid(array1)
+    sudoku2 = SudokuGrid(array2)
+    sudoku3 = SudokuGrid(array3)
+    Sudoku3 = SudokuGrid(Array3)
+    sudoCopy = SudokuGrid(arraycopy)
+
+    start = time.time()
+    sudoCopy.solve()
+    print(time.time()-start)
+    print(sudoCopy.is_valid())
+    sudoCopy.display()
+
+    start = time.time()
+    sudoku1.solve()
+    print(time.time()-start)
+    print(sudoku1.is_valid())
+    sudoku1.display()
+
+    start = time.time()
+    sudoku2.solve()
+    print(time.time()-start)
+    print(sudoku2.is_valid())
+    sudoku2.display()
+
+    start = time.time()
+    sudoku3.solve()
+    print(time.time()-start)
+    print(sudoku3.is_valid())
+    sudoku3.display()
+
+    start = time.time()
+    Sudoku3.solve()
+    print(time.time()-start)
+    print(Sudoku3.is_valid())
+    Sudoku3.display()
 
 
-############################
-
-sudoku1 = SudokuGrid(array1)
-sudoku2 = SudokuGrid(array2)
-# for row in range(9):
-#     for col in range(9):
-#         print(f"{row} {col} {sudoku.possibilities[row][col]}")
-# while(input() != '-1'):
-#     sudoku.find_hidden_singles()
-
-# start = time.time()
-# sudoku.solve()
-# print(time.time()-start)
-# print(sudoku.is_valid())
-# sudoku.display()
-
-start = time.time()
-sudoku1.solve_better()
-print(time.time()-start)
-print(sudoku1.is_valid())
-sudoku1.display()
-
-start = time.time()
-sudoku2.solve_better()
-print(time.time()-start)
-print(sudoku2.is_valid())
-sudoku2.display()
+if __name__ == '__main__':
+    main()
