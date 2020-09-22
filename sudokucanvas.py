@@ -1,7 +1,10 @@
 from tkinter import *
+from tkinter import messagebox
 from sudokugrid import SudokuGrid
 
 NUMBERS = ['1', '2', '3', '4', '5', '6', '7', '8', '9']
+COL_LOGIC = '#FFA71A'  # Pale green colour
+COL_BRUTE = '#2D6FE3'  # Blueish colour
 
 
 class SudokuCanvas:
@@ -10,7 +13,8 @@ class SudokuCanvas:
         self.WIDTH = size
         self.CELL_WIDTH = size // 9
         self.cell_text = [[{} for _ in range(9)] for _ in range(9)]
-
+        self.cell_highlights = [[None for _ in range(9)] for _ in range(9)]
+        self.solving = False
         self.canvas = Canvas(frame, width=size, height=size,
                              borderwidth=0, highlightthickness=0)
         self.canvas.place(relx=0.5, rely=0.5, anchor='center')
@@ -19,28 +23,56 @@ class SudokuCanvas:
         self.curr_cell = None
         self.curr_cell_xy = None
 
-        self.sudoku = self.create_sudoku(initial)  #  stores the players inputs
-        self.solution = self.create_sudoku(
-            initial)  # stores the actual solution
+        #  stores the players inputs
+        self.sudoku = self.create_sudoku(initial)
 
-        # Will have drawing modes of 'DEFAULT','PENCIL','BIG'
+        # stores the actual solution
+        self.solution = self.create_sudoku(initial)
+
+        # Drawing modes of 'DEFAULT','PENCIL','BIG'
         # Default: Draws big if only one number in the square, small if more than one
         # Pencil: Draws all numbers small
         # Big: Draws the number big, as if it is the only one
         self.draw_mode = 'DEFAULT'
         self.mode_string = StringVar()
-        self.mode_string.set(f"Current mode is: {self.draw_mode}")
+        self.mode_string.set(f"Mode is: {self.draw_mode}")
 
         self.draw_grid()
         self.interactions()
         self.set_fixed_cells(initial)
-        self.solution.display()
+        # self.solution.display()
 
     ##################################
 
     def visualize_solve(self):
+        if not self.sudoku.solved:
+            self.solving = True
+        """Visualises the backtracking algorithm, 
+        First checks for any cells which only have one possibility,
+        then looks for values which can only be in one place in a given
+        row/column/box.
+        Once no single cells can be determined begins the backtracking step"""
+        while self.sudoku.changes:
+            self.sudoku.find_hidden_singles()
+            for changed in self.sudoku.changes:
+                row, col, x = changed
+                for key in self.guesses[row][col].keys():
+                    if int(key) != x:
+                        self.guesses[row][col][key] = 0
+                    else:
+                        self.guesses[row][col][key] = 1
+                self.update_cell(row, col)
+                ind = self.cell_text[row][col][str(x)]
+                self.canvas.itemconfig(ind, fill=COL_LOGIC)
+                # highlight the cells solved in this way in some manor
+                self.canvas.update()
 
         def put_number(index):
+            """backtracking procedure, tries to place each
+                possible number into a given cell. Then tries to place numbers
+                in the next non-empty cell. If an attempted solution is no longer
+                viable it will undo all placed numbers until it is back on a 
+                viable solution"""
             row, col = index // 9, index % 9
             sudoku = self.sudoku
             if sudoku.solved:
@@ -48,6 +80,7 @@ class SudokuCanvas:
             self.canvas.update()
             if row == 9:
                 self.sudoku.solved = True
+                self.solving = False
                 return
             else:
                 if f"{row} {col}" in self.fixed_cells or sudoku.get_row_col(row, col) != 0:
@@ -60,11 +93,13 @@ class SudokuCanvas:
                                     self.guesses[row][col][key] = 0
                                 else:
                                     self.guesses[row][col][key] = 1
-                                self.update_cell(row, col)
+                            self.update_cell(row, col)
+                            ind = self.cell_text[row][col][str(x)]
+                            self.canvas.itemconfig(ind, fill=COL_BRUTE)
                             put_number(index+1)
                             if not self.sudoku.solved:
                                 self.guesses[row][col][str(x)] = 0
-                            self.update_cell(row, col)
+                                self.update_cell(row, col)
         put_number(0)
     #####################################
 
@@ -78,9 +113,11 @@ class SudokuCanvas:
     def set_mode(self, mode):
         if mode in ['DEFAULT', 'PENCIL', 'BIG']:
             self.draw_mode = mode
-            self.mode_string.set(f"Current mode is: {self.draw_mode}")
+            self.mode_string.set(f"Mode is: {self.draw_mode}")
 
     def toggle_mode(self, event=None):
+        if self.solving:
+            return
         mode = self.draw_mode
         if mode == 'DEFAULT':
             self.draw_mode = 'PENCIL'
@@ -88,7 +125,7 @@ class SudokuCanvas:
             self.draw_mode = 'BIG'
         elif mode == 'BIG':
             self.draw_mode = 'DEFAULT'
-        self.mode_string.set(f"Current mode is: {self.draw_mode}")
+        self.mode_string.set(f"Mode is: {self.draw_mode}")
 
     def draw_grid(self):
         """draws the sudoku grid lines onto the canvas"""
@@ -128,9 +165,11 @@ class SudokuCanvas:
         self.fixed_cells = initial
         self.sudoku = self.create_sudoku(initial)
         self.solution = self.create_sudoku(initial)
-        self.sudoku.display()
+        # self.sudoku.display()
         self.solution.solve()
-        self.solution.display()
+        if not self.solution.solved:
+            messagebox.showwarning("Warning!", "No solution found")
+        # self.solution.display()
 
     def draw_number(self, row, col, key, mode=None, font_weight=''):
         if mode is None:
@@ -214,6 +253,8 @@ class SudokuCanvas:
         self.canvas.tag_lower(self.curr_cell)
 
     def take_input(self, event, button=False):
+        if self.solving:
+            return
         # allows me to pass through button presses instead
         if button:
             char = str(event)
@@ -240,6 +281,7 @@ class SudokuCanvas:
         if char in ['f', 'F']:
             if self.draw_mode != 'BIG':
                 for num in NUMBERS:
-                    self.guesses[row][col][num] = 1
-                    self.sudoku.set_row_col(row, col, 0)
+                    if self.sudoku.is_possible(row, col, int(num)):
+                        self.guesses[row][col][num] = 1
+                        self.sudoku.set_row_col(row, col, 0)
         self.update_cell(row, col)

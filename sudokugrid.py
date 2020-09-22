@@ -207,8 +207,8 @@ class SudokuGrid:
                 if self.is_possible(row, col, x):
                     self.set_row_col(row, col, x)
                     self.put_number(index+1)
-                    if not self.solved:
-                        self.set_row_col(row, col, 0)
+                if not self.solved:
+                    self.set_row_col(row, col, 0)
         else:
             self.put_number(index+1)
 
@@ -217,17 +217,6 @@ def main():
     #######################################
     # storing some test cases to be trialed
     array1 = [
-        [0, 2, 0, 6, 0, 8, 0, 0, 0],
-        [5, 8, 0, 0, 0, 9, 7, 0, 0],
-        [0, 0, 0, 0, 4, 0, 0, 0, 0],
-        [3, 7, 0, 0, 0, 0, 5, 0, 0],
-        [6, 0, 0, 0, 0, 0, 0, 0, 4],
-        [0, 0, 8, 0, 0, 0, 0, 1, 3],
-        [0, 0, 0, 0, 2, 0, 0, 0, 0],
-        [0, 0, 9, 8, 0, 0, 0, 3, 6],
-        [0, 0, 0, 3, 0, 6, 0, 9, 0]
-    ]
-    arraycopy = [
         [0, 2, 0, 6, 0, 8, 0, 0, 0],
         [5, 8, 0, 0, 0, 9, 7, 0, 0],
         [0, 0, 0, 0, 4, 0, 0, 0, 0],
@@ -262,8 +251,8 @@ def main():
         [0, 0, 0, 1, 0, 6, 0, 0, 7],
         [0, 0, 6, 0, 0, 0, 1, 0, 4],
     ]
-    Array3 = [
-        [3, 0, 9, 0, 0, 0, 4, 0, 0],
+    unsolvable = [
+        [3, 3, 9, 0, 0, 0, 4, 0, 0],
         [2, 0, 0, 7, 0, 9, 0, 0, 0],
         [0, 8, 7, 0, 0, 0, 0, 0, 0],
         [7, 5, 0, 0, 6, 0, 2, 3, 0],
@@ -273,44 +262,18 @@ def main():
         [0, 0, 0, 1, 0, 6, 0, 0, 7],
         [0, 0, 6, 0, 0, 0, 1, 0, 4],
     ]
-
-    ############################
+    sudoku = SudokuGrid(unsolvable)
+    sudoku.solve()
+    print(sudoku.solved)
+    sudoku.display()
 
     sudoku1 = SudokuGrid(array1)
-    sudoku2 = SudokuGrid(array2)
-    sudoku3 = SudokuGrid(array3)
-    Sudoku3 = SudokuGrid(Array3)
-    sudoCopy = SudokuGrid(arraycopy)
-
-    start = time.time()
-    sudoCopy.solve()
-    print(time.time()-start)
-    print(sudoCopy.is_valid())
-    sudoCopy.display()
-
-    start = time.time()
-    sudoku1.solve()
-    print(time.time()-start)
-    print(sudoku1.is_valid())
+    sudoku1.find_hidden_singles()
     sudoku1.display()
+    # print(sudoku1.solved)
+    # sudoku1.display()
 
-    start = time.time()
-    sudoku2.solve()
-    print(time.time()-start)
-    print(sudoku2.is_valid())
-    sudoku2.display()
-
-    start = time.time()
-    sudoku3.solve()
-    print(time.time()-start)
-    print(sudoku3.is_valid())
-    sudoku3.display()
-
-    start = time.time()
-    Sudoku3.solve()
-    print(time.time()-start)
-    print(Sudoku3.is_valid())
-    Sudoku3.display()
+    ############################
 
 
 if __name__ == '__main__':
