@@ -2,6 +2,8 @@
 
 To run: python sudokuapp.py
 
+An app where you can input your own sudoku puzzles and either solve them yourself or have them solved via an algorithm based on backtracking. 
+
 # Controls
 
 Select a cell on the grid with a click to highlight a cell. 
