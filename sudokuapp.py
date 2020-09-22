@@ -65,7 +65,7 @@ class App(Frame):
     def init_options(self):
 
         def reveal_cell():
-            if self.sudoku_canvas.curr_cell_xy is None:
+            if self.sudoku_canvas.curr_cell_xy is None or self.sudoku_canvas.solving:
                 return
             col, row = [
                 int(s) // self.sudoku_canvas.CELL_WIDTH for s in self.sudoku_canvas.curr_cell_xy]
@@ -79,6 +79,8 @@ class App(Frame):
             self.hints_used += 1
 
         def reset_canvas():
+            if self.sudoku_canvas.solving:
+                return
             self.hints_used = 0
             self.sudoku_canvas.set_fixed_cells({})
             self.sudoku_canvas.set_mode('BIG')
@@ -86,6 +88,8 @@ class App(Frame):
                 text='Set Grid', command=set_sudoku)
 
         def set_sudoku():
+            if self.sudoku_canvas.solving:
+                return
             initial = {}
             for row in range(9):
                 for col in range(9):
@@ -101,9 +105,13 @@ class App(Frame):
                 text='New Grid', command=reset_canvas)
 
         def solve_grid():
+            if self.sudoku_canvas.solving:
+                return
             self.sudoku_canvas.visualize_solve()
 
         def error_check():
+            if self.sudoku_canvas.solving:
+                return
             for row in range(9):
                 for col in range(9):
                     curr_val = self.sudoku_canvas.sudoku.get_row_col(row, col)
