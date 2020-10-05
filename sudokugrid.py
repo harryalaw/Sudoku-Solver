@@ -1,8 +1,6 @@
 from itertools import product
-import time
 
 # solve method doesn't check for multiple solutions
-
 
 class SudokuGrid:
     def __init__(self, array=None):
@@ -44,7 +42,7 @@ class SudokuGrid:
 
     def is_possible(self, row, col, value=None):
         """
-        Checks if a given position i, j sees the same value in either the same
+        Checks if a given position {row}, {col} sees the same value in either the same
         row, column, or box of the sudoku grid
         Returns False if the number is INVALID
         Returns True if the number is VALID
@@ -192,7 +190,7 @@ class SudokuGrid:
     def put_number(self, index):
         """
         Iterates through all cells of the grid, tries to place each number
-        in turn into the cell and then looks for next non-empty cell.
+        in turn into the cell given by {index} and then looks for next non-empty cell.
         If a given solution is no longer valid, reverts the changes back up the recursive chain until it can continue again.
         """
 
@@ -211,70 +209,3 @@ class SudokuGrid:
                     self.set_row_col(row, col, 0)
         else:
             self.put_number(index+1)
-
-
-def main():
-    #######################################
-    # storing some test cases to be trialed
-    array1 = [
-        [0, 2, 0, 6, 0, 8, 0, 0, 0],
-        [5, 8, 0, 0, 0, 9, 7, 0, 0],
-        [0, 0, 0, 0, 4, 0, 0, 0, 0],
-        [3, 7, 0, 0, 0, 0, 5, 0, 0],
-        [6, 0, 0, 0, 0, 0, 0, 0, 4],
-        [0, 0, 8, 0, 0, 0, 0, 1, 3],
-        [0, 0, 0, 0, 2, 0, 0, 0, 0],
-        [0, 0, 9, 8, 0, 0, 0, 3, 6],
-        [0, 0, 0, 3, 0, 6, 0, 9, 0]
-    ]
-
-    array2 = [
-        [9, 8, 3, 0, 0, 0, 0, 4, 0],
-        [0, 6, 0, 9, 0, 0, 0, 0, 8],
-        [1, 0, 0, 0, 0, 8, 0, 6, 0],
-        [0, 0, 0, 0, 0, 0, 9, 1, 0],
-        [0, 0, 0, 5, 0, 6, 0, 0, 0],
-        [3, 9, 6, 0, 0, 0, 8, 0, 2],
-        [0, 0, 0, 4, 0, 5, 0, 0, 0],
-        [5, 0, 0, 0, 2, 0, 0, 0, 0],
-        [0, 0, 8, 3, 0, 0, 0, 7, 4],
-    ]
-
-    array3 = [
-        [3, 0, 9, 0, 0, 0, 4, 0, 0],
-        [2, 0, 0, 7, 0, 9, 0, 0, 0],
-        [0, 8, 7, 0, 0, 0, 0, 0, 0],
-        [7, 5, 0, 0, 6, 0, 2, 3, 0],
-        [6, 0, 0, 9, 0, 4, 0, 0, 8],
-        [0, 2, 8, 0, 5, 0, 0, 4, 1],
-        [0, 0, 0, 0, 0, 0, 5, 9, 0],
-        [0, 0, 0, 1, 0, 6, 0, 0, 7],
-        [0, 0, 6, 0, 0, 0, 1, 0, 4],
-    ]
-    unsolvable = [
-        [3, 3, 9, 0, 0, 0, 4, 0, 0],
-        [2, 0, 0, 7, 0, 9, 0, 0, 0],
-        [0, 8, 7, 0, 0, 0, 0, 0, 0],
-        [7, 5, 0, 0, 6, 0, 2, 3, 0],
-        [6, 0, 0, 9, 0, 4, 0, 0, 8],
-        [0, 2, 8, 0, 5, 0, 0, 4, 1],
-        [0, 0, 0, 0, 0, 0, 5, 9, 0],
-        [0, 0, 0, 1, 0, 6, 0, 0, 7],
-        [0, 0, 6, 0, 0, 0, 1, 0, 4],
-    ]
-    sudoku = SudokuGrid(unsolvable)
-    sudoku.solve()
-    print(sudoku.solved)
-    sudoku.display()
-
-    sudoku1 = SudokuGrid(array1)
-    sudoku1.find_hidden_singles()
-    sudoku1.display()
-    # print(sudoku1.solved)
-    # sudoku1.display()
-
-    ############################
-
-
-if __name__ == '__main__':
-    main()
