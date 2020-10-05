@@ -45,13 +45,15 @@ class SudokuCanvas:
     ##################################
 
     def visualize_solve(self):
-        if not self.sudoku.solved:
-            self.solving = True
         """Visualises the backtracking algorithm, 
         First checks for any cells which only have one possibility,
         then looks for values which can only be in one place in a given
         row/column/box.
         Once no single cells can be determined begins the backtracking step"""
+
+        if not self.sudoku.solved:
+            self.solving = True
+        
         while self.sudoku.changes:
             self.sudoku.find_hidden_singles()
             for changed in self.sudoku.changes:
@@ -64,14 +66,14 @@ class SudokuCanvas:
                 self.update_cell(row, col)
                 ind = self.cell_text[row][col][str(x)]
                 self.canvas.itemconfig(ind, fill=COL_LOGIC)
-                # highlight the cells solved in this way in some manor
+                # highlight the cells solved in one colour
                 self.canvas.update()
 
         def put_number(index):
             """backtracking procedure, tries to place each
-                possible number into a given cell. Then tries to place numbers
-                in the next non-empty cell. If an attempted solution is no longer
-                viable it will undo all placed numbers until it is back on a 
+                possible number into the cell given by {index}. Then tries to place 
+                numbers in the next non-empty cell. If an attempted solution is no 
+                longer viable it will undo all placed numbers until it is back on a 
                 viable solution"""
             row, col = index // 9, index % 9
             sudoku = self.sudoku
@@ -104,6 +106,7 @@ class SudokuCanvas:
     #####################################
 
     def create_sudoku(self, initial):
+        """Initialises a sudoku from a set of initial values"""
         array = [[0 for _ in range(9)] for _ in range(9)]
         for key, value in initial.items():
             row, col = [int(s) for s in key.split(" ")]
@@ -188,7 +191,7 @@ class SudokuCanvas:
                 x_coord, y_coord, text=f" {key} ", font=('TkDefaultFont', 24, font_weight))
 
     def update_cell(self, row, col, font_weight=''):
-        """writes the value of all guesses into the [x,y]-th cell"""
+        """writes the value of all guesses into the cell at {row},{col}"""
         for key, value in self.guesses[row][col].items():
             # removes the number if no longer a guess
             if key in self.cell_text[row][col] and value == 0:
@@ -253,19 +256,20 @@ class SudokuCanvas:
         self.canvas.tag_lower(self.curr_cell)
 
     def take_input(self, event, button=False):
-        if self.solving:
+        if self.solving or self.curr_cell is None:
             return
         # allows me to pass through button presses instead
         if button:
             char = str(event)
         else:
             char = event.char
-        if self.curr_cell is None:
-            return
 
         col, row = self.curr_cell_xy[0] // self.CELL_WIDTH, self.curr_cell_xy[1] // self.CELL_WIDTH
+        
         if f"{row} {col}" in self.fixed_cells:
             return
+        
+        # inputs the number that is pressed into the grid 
         if char in NUMBERS:
             if self.draw_mode == 'BIG':
                 for key in self.guesses[row][col].keys():
